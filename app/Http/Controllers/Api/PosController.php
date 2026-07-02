@@ -17,26 +17,21 @@ class PosController extends Controller
     {
         $user = $request->user(); // Ambil data kasir yang sedang login
 
-        // 1. Generate Nomor Nota Kronologis (Format: TRX-YYYYMMDD-IDACAK)
         $dateString = Carbon::now()->format('Ymd');
         $invoiceNumber = 'TRX-' . $dateString . '-' . strtoupper(Str::random(5));
 
         return DB::transaction(function () use ($request, $user, $invoiceNumber) {
             
-            // 2. Hitung Awal nominal
             $subtotal = 0;
             $itemsToProcess = [];
 
-            // Loop pertama: Validasi ketersediaan seluruh stok bahan baku terlebih dahulu
             foreach ($request->items as $item) {
                 $recipe = ProductRecipe::with(['bibit', 'campuran', 'botol'])->find($item['product_recipe_id']);
                 $qty = $item['quantity'];
 
-                // Hitung total kebutuhan bahan baku dikali kuantitas barang yang dibeli
                 $totalBibitNeeded = $recipe->bibit_volume * $qty;
                 $totalCampuranNeeded = $recipe->campuran_volume * $qty;
 
-                // Cek Stok Bibit
                 if ($recipe->bibit->stock < $totalBibitNeeded) {
                     return response()->json([
                         'status' => 'error',
@@ -44,7 +39,6 @@ class PosController extends Controller
                     ], 422);
                 }
 
-                // Cek Stok Cairan Campuran (jika resep memakai campuran)
                 if ($recipe->campuran && $recipe->campuran->stock < $totalCampuranNeeded) {
                     return response()->json([
                         'status' => 'error',
@@ -52,7 +46,6 @@ class PosController extends Controller
                     ], 422);
                 }
 
-                // Cek Stok Botol Kosong
                 if ($recipe->botol->stock < $qty) {
                     return response()->json([
                         'status' => 'error',
@@ -60,11 +53,9 @@ class PosController extends Controller
                     ], 422);
                 }
 
-                // Hitung subtotal belanjaan
                 $itemSubtotal = $recipe->selling_price * $qty;
                 $subtotal += $itemSubtotal;
 
-                // Simpan data kalkulasi ke array sementara
                 $itemsToProcess[] = [
                     'recipe' => $recipe,
                     'quantity' => $qty,
@@ -75,7 +66,6 @@ class PosController extends Controller
                 ];
             }
 
-            // 3. Simpan Data Induk Transaksi
             $discount = $request->discount;
             $totalAmount = max(0, $subtotal - $discount);
 
@@ -90,11 +80,9 @@ class PosController extends Controller
                 'status' => 'paid',
             ]);
 
-            // 4. Loop Kedua: Eksekusi Potong Stok & Simpan Detail Item
             foreach ($itemsToProcess as $proc) {
                 $recipe = $proc['recipe'];
 
-                // Simpan baris detail nota
                 TransactionDetail::create([
                     'transaction_id' => $transaction->id,
                     'product_recipe_id' => $recipe->id,
@@ -103,7 +91,7 @@ class PosController extends Controller
                     'subtotal' => $proc['subtotal'],
                 ]);
 
-                // EKSEKUSI POTONG STOK FISIK DI TABEL MATERIALS
+                // potong stok bibit, campuran, dan botol sesuai kebutuhan
                 $recipe->bibit->decrement('stock', $proc['bibit_decrement']);
                 
                 if ($recipe->campuran) {
