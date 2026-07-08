@@ -12,7 +12,7 @@ return [
     */
 
     // DIKUNCI LANGSUNG KE PGSQL (SUPABASE)
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
     |--------------------------------------------------------------------------
@@ -74,21 +74,21 @@ return [
             ]) : [],
         ],
 
-        // JALUR PAKSA LANGSUNG KE SUPABASE SINGAPURA
-        'pgsql' => [
-            'driver' => 'pgsql',
-            'url' => null,
-            'host' => 'aws-1-ap-southeast-1.pooler.supabase.com', 
-            'port' => '6543',
-            'database' => 'postgres',
-            'username' => 'postgres.gpmyfzuspaitljxdmhrg', 
-            'password' => 'Gawol151004#',
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => 'prefer',
-        ],
+        // // JALUR PAKSA LANGSUNG KE SUPABASE SINGAPURA
+        // 'pgsql' => [
+        //     'driver' => 'pgsql',
+        //     'url' => null,
+        //     'host' => 'aws-1-ap-southeast-1.pooler.supabase.com', 
+        //     'port' => '6543',
+        //     'database' => 'postgres',
+        //     'username' => 'postgres.gpmyfzuspaitljxdmhrg', 
+        //     'password' => 'Gawol151004#',
+        //     'charset' => 'utf8',
+        //     'prefix' => '',
+        //     'prefix_indexes' => true,
+        //     'search_path' => 'public',
+        //     'sslmode' => 'prefer',
+        // ],
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
