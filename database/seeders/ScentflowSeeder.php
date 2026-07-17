@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\Product;
 use App\Models\ProductRecipe;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ScentflowSeeder extends Seeder
 {
@@ -73,15 +74,23 @@ class ScentflowSeeder extends Seeder
         // 3. DATA KATALOG INDUK PARFUM
         $baccarat = Product::create([
             'name' => 'Baccarat Rouge',
+            'slug' => Str::slug('Baccarat Rouge') . '-' . Str::random(5),
+            'sku' => 'PRD-BCC-RGE', // Tambah SKU unik
             'category' => 'Unisex',
+            'description' => 'Aroma mewah perpaduan dari wangi melati, saffron, amberwood, dan cedarwood yang memberikan kesan elegan dan timeless.', // Tambah deskripsi aroma
             'base_price_per_ml' => 5000.00,
+            'image' => 'products/baccarat.png', // Tambah nama file gambar
             'is_available' => true,
         ]);
 
         $sauvage = Product::create([
             'name' => 'Sauvage Dior',
+            'slug' => Str::slug('Sauvage Dior') . '-' . Str::random(5),
+            'sku' => 'PRD-SVG-DIO', // Tambah SKU unik
             'category' => 'Men',
+            'description' => 'Wangi maskulin yang segar dan radikal berkat perpaduan bergamot Calabria yang berair serta semburan amberwood yang pekat.', // Tambah deskripsi aroma
             'base_price_per_ml' => 6000.00,
+            'image' => 'products/sauvage.png', // Tambah nama file gambar
             'is_available' => true,
         ]);
 

@@ -14,6 +14,6 @@ class Product extends Model
 
     public function recipes(): HasMany
     {
-        return $this->hasMany(ProductRecipe::class);
+        return $this->hasMany(ProductRecipe::class, 'product_id');
     }
 }
