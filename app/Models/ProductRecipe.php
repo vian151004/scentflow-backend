@@ -11,14 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'product_id', 
     'bottle_size', 
     'ratio_type', 
-    'bibit_material_id', 
-    'bibit_volume', 
-    'campuran_material_id', 
-    'campuran_volume', 
-    'botol_material_id', 
+    'fragrance_material_id', 
+    'fragrance_volume', 
+    'mixture_material_id', 
+    'mixture_volume', 
+    'bottle_material_id', 
     'selling_price'
 ])]
-
 class ProductRecipe extends Model
 {
     use HasUuids;
@@ -28,18 +27,18 @@ class ProductRecipe extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function bibit(): BelongsTo
+    public function fragrance(): BelongsTo
     {
-        return $this->belongsTo(Material::class, 'bibit_material_id');
+        return $this->belongsTo(Material::class, 'fragrance_material_id');
     }
 
-    public function campuran(): BelongsTo
+    public function mixture(): BelongsTo
     {
-        return $this->belongsTo(Material::class, 'campuran_material_id');
+        return $this->belongsTo(Material::class, 'mixture_material_id');
     }
 
-    public function botol(): BelongsTo
+    public function bottle(): BelongsTo
     {
-        return $this->belongsTo(Material::class, 'botol_material_id');
+        return $this->belongsTo(Material::class, 'bottle_material_id');
     }
 }
