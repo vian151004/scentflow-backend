@@ -29,14 +29,16 @@ class AuthController extends Controller
 
         if ($user->status !== 'active') {
             return response()->json([
+                'success' => false,
                 'message' => 'Akun Anda dinonaktifkan, silakan hubungi administrator.',
             ], 403);
         }
 
-        // Generate user token
+        // Generate user token by role
         $token = $user->createToken('auth_token', [$user->role])->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
@@ -55,6 +57,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Logout berhasil',
         ]);
     }
@@ -62,6 +65,8 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json([
+            'success' => true,
+            'message' => 'Detail profil user login',
             'user' => $request->user(),
         ]);
     }
