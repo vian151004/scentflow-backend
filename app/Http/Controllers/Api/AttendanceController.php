@@ -24,6 +24,32 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Display today's attendance for the authenticated user.
+     */
+    public function today(Request $request)
+    {
+        $today = Carbon::now()->toDateString();
+        $attendance = Attendance::with(['user', 'cashClosing'])
+            ->where('user_id', $request->user()->id)
+            ->where('date', $today)
+            ->first();
+
+        if (!$attendance) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Belum melakukan absensi hari ini.',
+                'data' => null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data absensi hari ini ditemukan.',
+            'data' => new AttendanceResource($attendance),
+        ]);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
@@ -73,7 +99,7 @@ class AttendanceController extends Controller
      */
     public function show(string $id)
     {
-        $attendance = Attendance::with(['user', 'cashClosing'])->findOrFail($id);
+        $attendance = Attendance::with(['user', 'cashClosing'])->find($id);
 
         if (!$attendance) {
             return response()->json([
