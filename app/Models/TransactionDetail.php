@@ -24,7 +24,7 @@ class TransactionDetail extends Model
         return $this->belongsTo(Transaction::class);
     }
 
-    public function recipe(): BelongsTo
+    public function productRecipe(): BelongsTo
     {
         return $this->belongsTo(ProductRecipe::class, 'product_recipe_id');
     }

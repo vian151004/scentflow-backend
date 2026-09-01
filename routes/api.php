@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CashClosingController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\TransactionController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -21,6 +22,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('attendances', AttendanceController::class);
 
     Route::apiResource('cash-closings', CashClosingController::class)->only([
+        'index', 
+        'store', 
+        'show'
+    ]);
+
+    Route::apiResource('transactions', TransactionController::class)->only([
         'index', 
         'store', 
         'show'

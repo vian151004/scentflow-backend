@@ -15,7 +15,11 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::latest()->get();
+        $products = Product::with([
+            'recipes.fragrance',
+            'recipes.mixture',
+            'recipes.bottle'
+        ])->where('is_available', true)->get();
 
         return response()->json([
             'success' => true,

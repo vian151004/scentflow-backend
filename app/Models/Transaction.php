@@ -23,7 +23,7 @@ class Transaction extends Model
 {
     use HasUuids;
 
-    public function kasir(): BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
