@@ -16,8 +16,9 @@ class TransactionDetailResource extends JsonResource
     {
         return [
             'id'                => $this->id,
+            'product_id'        => $this->product_id,
+            'product_name'      => $this->product->name ?? $this->productRecipe?->product?->name,
             'product_recipe_id' => $this->product_recipe_id,
-            'product_name'      => $this->productRecipe?->product?->name,
             'quantity'          => (int) $this->quantity,
             'price'             => (float) $this->price,
             'subtotal'          => (float) $this->subtotal,

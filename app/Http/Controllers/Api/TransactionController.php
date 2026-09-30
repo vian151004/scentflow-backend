@@ -41,7 +41,8 @@ class TransactionController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|in:cash,qris,transfer',
             'items' => 'required|array|min:1',
-            'items.*.product_recipe_id' => 'required|uuid|exists:product_recipes,id',
+            'items.*.product_id' => 'required|uuid|exists:products,id',
+            'items.*.product_recipe_id' => 'nullable|uuid|exists:product_recipes,id',
             'items.*.quantity' => 'required|integer|min:1',
         ]);
 
@@ -50,44 +51,84 @@ class TransactionController extends Controller
             $itemsData = [];
 
             foreach ($validated['items'] as $item) {
-                $recipe = ProductRecipe::with(['product', 'fragrance', 'mixture', 'bottle'])
-                    ->findOrFail($item['product_recipe_id']);
-                
+                // $recipe = ProductRecipe::with(['product', 'fragrance', 'mixture', 'bottle'])
+                //     ->findOrFail($item['product_recipe_id']);
+                $product = Product::findOrFail($item['product_id']);
                 $qty = (int) $item['quantity'];
-                $unitPrice = (float) $recipe->selling_price; 
-                $itemSubtotal = $unitPrice * $qty;
-                $subtotal += $itemSubtotal;
 
-                $fragranceNeeded = (float) $recipe->fragrance_volume * $qty;
-                if ($recipe->fragrance && $recipe->fragrance->stock < $fragranceNeeded) {
-                    return response()->json([
-                        'message' => "Stok bibit '{$recipe->fragrance->name}' tidak mencukupi racikan {$recipe->product->name}.",
-                    ], 422);
+                if ($product->product_type === 'retail') {
+                    if ($product->stock < $qty) {
+                        return response()->json([
+                            'message' => "Stok produk '{$product->name}' tidak mencukupi.",
+                        ], 422);
+                    }
+
+                    $unitPrice = (float) $product->price;
+                    $itemSubtotal = $unitPrice * $qty;
+                    $subtotal += $itemSubtotal;
+
+                    $itemsData[] = [
+                        'type'              => 'retail',
+                        'product'           => $product,
+                        'product_recipe_id' => null,
+                        'quantity'          => $qty,
+                        'price'             => $unitPrice,
+                        'subtotal'          => $itemSubtotal,
+                    ];
+                } else {
+                    if (empty($item['product_recipe_id'])) {
+                        return response()->json([
+                            'message' => "Racikan untuk produk '{$product->name}' harus dipilih.",
+                        ], 422);
+                    }
+
+                    $recipe = ProductRecipe::with(['product', 'fragrance', 'mixture', 'bottle'])
+                        ->findOrFail($item['product_recipe_id']);
+
+                    if ($recipe->product_id !== $product->id) {
+                        return response()->json([
+                            'message' => "Resep yang dipilih tidak sesuai dengan produk '{$product->name}'."
+                        ], 422);
+                    }
+                    
+                    $unitPrice = (float) $recipe->selling_price;
+                    $itemSubtotal = $unitPrice * $qty;
+                    $subtotal += $itemSubtotal;
+
+                    $fragranceNeeded = (float) $recipe->fragrance_volume * $qty;
+                    if ($recipe->fragrance && $recipe->fragrance->stock < $fragranceNeeded) {
+                        return response()->json([
+                            'message' => "Stok bibit '{$recipe->fragrance->name}' tidak mencukupi racikan {$recipe->product->name}.",
+                        ], 422);
+                    }
+
+                    $mixturedNeeded = (float) $recipe->mixture_volume * $qty;
+                    if ($recipe->mixture && $recipe->mixture->stock < $mixturedNeeded) {
+                        return response()->json([
+                            'message' => "Stok pelarut '{$recipe->mixture->name}' tidak mencukupi racikan {$recipe->product->name}.",
+                        ], 422);
+                    }
+
+                    $bottleNeeded = 1 * $qty;
+                    if ($recipe->bottle && $recipe->bottle->stock < $bottleNeeded) {
+                        return response()->json([
+                            'message' => "Stok botol '{$recipe->bottle->name}' tidak mencukupi racikan {$recipe->product->name}.",
+                        ], 422);
+                    }
+
+                    $itemsData[] = [
+                        'type' => 'custom',
+                        'product' => $product,
+                        'product_recipe_id' => $recipe->id,
+                        'recipe' => $recipe,
+                        'quantity' => $qty,
+                        'price' => $unitPrice,
+                        'subtotal' => $itemSubtotal,
+                        'fragrance_needed' => $fragranceNeeded,
+                        'mixture_needed' => $mixturedNeeded,
+                        'bottle_needed' => $bottleNeeded,
+                    ];
                 }
-
-                $mixturedNeeded = (float) $recipe->mixture_volume * $qty;
-                if ($recipe->mixture && $recipe->mixture->stock < $mixturedNeeded) {
-                    return response()->json([
-                        'message' => "Stok pelarut '{$recipe->mixture->name}' tidak mencukupi racikan {$recipe->product->name}.",
-                    ], 422);
-                }
-
-                $bottleNeeded = 1 * $qty;
-                if ($recipe->bottle && $recipe->bottle->stock < $bottleNeeded) {
-                    return response()->json([
-                        'message' => "Stok botol '{$recipe->bottle->name}' tidak mencukupi racikan {$recipe->product->name}.",
-                    ], 422);
-                }
-
-                $itemsData[] = [
-                    'recipe' => $recipe,
-                    'quantity' => $qty,
-                    'price' => $unitPrice,
-                    'subtotal' => $itemSubtotal,
-                    'fragrance_needed' => $fragranceNeeded,
-                    'mixture_needed' => $mixturedNeeded,
-                    'bottle_needed' => $bottleNeeded,
-                ];
             }
 
             $discount = (float) ($validated['discount'] ?? 0);
@@ -109,24 +150,29 @@ class TransactionController extends Controller
             foreach ($itemsData as $data) {
                 TransactionDetail::create([
                     'transaction_id' => $transaction->id,
-                    'product_recipe_id' => $data['recipe']->id,
+                    'product_id' => $data['product']->id,
+                    'product_recipe_id' => $data['product_recipe_id'],
                     'quantity' => $data['quantity'],
                     'price' => $data['price'],
                     'subtotal' => $data['subtotal'],
                 ]);
 
-                if ($data['recipe']->fragrance) {
-                    $data['recipe']->fragrance->decrement('stock', $data['fragrance_needed']);
-                }
-                if ($data['recipe']->mixture) {
-                    $data['recipe']->mixture->decrement('stock', $data['mixture_needed']);
-                }
-                if ($data['recipe']->bottle) {
-                    $data['recipe']->bottle->decrement('stock', $data['bottle_needed']);
+                if ($data['type'] === 'retail') {
+                    $data['product']->decrement('stock', $data['quantity']);
+                } else {
+                    if ($data['recipe']->fragrance) {
+                        $data['recipe']->fragrance->decrement('stock', $data['fragrance_needed']);
+                    }
+                    if ($data['recipe']->mixture) {
+                        $data['recipe']->mixture->decrement('stock', $data['mixture_needed']);
+                    }
+                    if ($data['recipe']->bottle) {
+                        $data['recipe']->bottle->decrement('stock', $data['bottle_needed']);
+                    }
                 }
             }
 
-            $transaction->load(['user', 'details.productRecipe.product']);
+            $transaction->load(['user', 'details.product', 'details.productRecipe.product']);
 
             return response()->json([
                 'success' => true,

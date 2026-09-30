@@ -12,8 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'slug', 
     'sku', 
     'category', 
+    'product_type', 
     'description', 
-    'base_price_per_ml', 
+    'base_price_per_ml',
+    'price',
+    'stock',
     'image', 
     'is_available'
 ])]
